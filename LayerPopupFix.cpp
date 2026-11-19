@@ -1,4 +1,4 @@
-// LayerPopupFix: a dwmapi.dll proxy that stops the DOOM: The Dark Ages launcher
+// LayerPopupFix: a proxy DLL (dwmapi.dll by default) that stops the DOOM: The Dark Ages launcher
 // (idTechLauncher.exe) from showing its "unsupported Vulkan Layers" pop-up for ReShade.
 //
 // How it works: the launcher looks up vkEnumerateInstanceLayerProperties at runtime
@@ -7,10 +7,13 @@
 // launcher's own import table for those two lookup functions and hands back a wrapper
 // that removes VK_LAYER_reshade from the list.
 //
-// It does nothing in any other process (including DOOMTheDarkAges.exe, which loads
-// dwmapi.dll by name), so ReShade still loads in the game and nothing here runs
-// alongside the Kaibz mod's or ReShade's startup in the game process.
-// Every dwmapi export is forwarded to C:\Windows\System32\dwmapi.dll.
+// It does nothing in any other process (including DOOMTheDarkAges.exe), so ReShade
+// still loads in the game and nothing here runs alongside the Kaibz mod's or ReShade's
+// startup in the game process.
+//
+// Every export is forwarded to the real DLL of the same name in the build machine's
+// %SystemRoot%\System32. build.cmd generates that forwarder list per DLL name with
+// gen_exports.ps1 and force-includes it (/FI), so this file has no #include for it.
 //
 // Log: LayerPopupFix.log next to the exe, rewritten on each launcher start.
 
@@ -18,8 +21,6 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
-
-#include "dwmapi_exports.h"
 
 namespace {
 

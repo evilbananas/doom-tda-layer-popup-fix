@@ -1,6 +1,6 @@
 # LayerPopupFix
 
-A `dwmapi.dll` proxy for DOOM: The Dark Ages that stops `idTechLauncher.exe` from asking "Would you like to disable these layers?" when ReShade is installed as a Vulkan layer.
+A proxy DLL for DOOM: The Dark Ages that stops `idTechLauncher.exe` from asking "Would you like to disable these layers?" when ReShade is installed as a Vulkan layer.
 
 ## Why
 
@@ -12,46 +12,44 @@ The Kaibz mod has its own option for this (`IsRemoveIdTechReshadePopUp`), but wi
 
 - In `idTechLauncher.exe` only, it patches the launcher's import table entries for `GetProcAddress` and `vkGetInstanceProcAddr`.
 - When the launcher looks up `vkEnumerateInstanceLayerProperties`, it gets a wrapper that drops any layer whose name starts with `VK_LAYER_reshade`.
-- In every other process, including `DOOMTheDarkAges.exe` (which loads `dwmapi.dll` by name), it does nothing. ReShade still loads in the game.
-- All 118 dwmapi exports, including the ordinal-only ones, are forwarded to `C:\Windows\System32\dwmapi.dll`.
+- In every other process, including `DOOMTheDarkAges.exe`, it does nothing. ReShade still loads in the game.
+- Every export of the real DLL, including ordinal-only ones, is forwarded to the copy in `System32`.
 
-The launcher imports `dwmapi.dll` and the game doesn't, which is why that DLL was picked. Kaibz already uses `version.dll`.
+## Which DLL to use
+
+The same code is built under six names. Each one is a DLL that the launcher imports, that the game exe doesn't import, and that isn't a Windows KnownDLL (those always load from System32):
+
+| File | Notes |
+|---|---|
+| `dwmapi.dll` | Default. Tested in the launcher. |
+| `wtsapi32.dll` | Alternative, not yet tested in the launcher |
+| `userenv.dll` | Alternative, not yet tested in the launcher |
+| `dwrite.dll` | Alternative, not yet tested in the launcher |
+| `authz.dll` | Alternative, not yet tested in the launcher |
+| `netapi32.dll` | Alternative, not yet tested in the launcher |
+
+Use `dwmapi.dll` unless another mod already puts a `dwmapi.dll` in the game folder. Many mods load as a proxy for a Windows DLL (`version.dll`, `dinput8.dll`, `winmm.dll`, `dxgi.dll` and so on), and only one file can have each name. If `dwmapi.dll` is taken, pick the first name from the table that isn't.
+
+Install exactly one. Two of them would both hook the launcher; that still works, but only the first one gets to write the log.
+
+Don't rename a file to get around a clash. Each one only forwards the functions of the DLL it's named after, so renamed it either never loads (the launcher doesn't import `dinput8.dll`) or breaks whatever expects the real DLL. `version.dll` isn't offered because the Kaibz mod already uses it.
+
+## Install
+
+Copy the one DLL next to `idTechLauncher.exe` in the game folder. To uninstall, delete it.
+
+Vortex doesn't manage this file, so check it's still there after a purge or redeploy.
 
 ## Build
 
 Needs Visual Studio with the C++ x64 tools. `build.cmd` points at Visual Studio 18 Community; change the `vcvars64.bat` path if yours is elsewhere.
 
 ```
-build.cmd
+build.cmd              builds all six into out\
+build.cmd dwmapi       builds out\dwmapi.dll only
 ```
 
-This produces `dwmapi.dll` in this folder.
-
-`dwmapi_exports.h` was generated from the system DLL's exports with `dumpbin /exports C:\Windows\System32\dwmapi.dll`. Regenerate it if a Windows update changes that list.
-
-## Install
-
-Copy `dwmapi.dll` next to `idTechLauncher.exe` in the game folder. To uninstall, delete it.
-
-Vortex doesn't manage this file, so check it's still there after a purge or redeploy.
-
-### If another mod already uses dwmapi.dll
-
-Many mods load the same way, as a proxy for a Windows DLL dropped in the game folder (`version.dll`, `dinput8.dll`, `winmm.dll`, `dxgi.dll` and so on). Only one file can have each name, so check the game folder for an existing `dwmapi.dll` before copying this one in.
-
-Don't rename this DLL to get around a clash. It only loads because `idTechLauncher.exe` imports `dwmapi.dll` by name, and it only forwards dwmapi's functions. Under another name it either never loads (`dinput8.dll` isn't imported by the launcher) or breaks whatever expects the real DLL (`version.dll` would be missing all of version.dll's functions).
-
-If the name is taken, rebuild it as a proxy for a different DLL instead. It has to be one that the launcher imports, that the game exe doesn't import, and that isn't a Windows KnownDLL (those always load from System32). These fit:
-
-- `wtsapi32.dll`
-- `userenv.dll`
-- `dwrite.dll`
-- `authz.dll`
-- `netapi32.dll`
-
-To switch, regenerate `dwmapi_exports.h` from that DLL's exports in System32 (replace `dwmapi` with the new name in each forwarder), change the `/Fe:` output name in `build.cmd`, and rebuild. The hook code doesn't depend on the DLL name.
-
-`version.dll` would also load in the launcher, but the Kaibz mod already uses that name.
+For each name, `gen_exports.ps1` reads the exports of `%SystemRoot%\System32\<name>.dll` with `dumpbin` and writes the forwarder list to `build\<name>\proxy_exports.h`, which `build.cmd` force-includes into `LayerPopupFix.cpp`. Rebuild if a Windows update changes a DLL's exports.
 
 ## Log
 
@@ -67,5 +65,5 @@ Each launcher start rewrites `LayerPopupFix.log` in the game folder. A working r
 
 ## Limits
 
-- The forward target is the absolute path `C:\Windows\System32\dwmapi.dll`, so it assumes Windows is on `C:`.
+- Forwarders point at the absolute path of the build machine's `%SystemRoot%\System32` (`C:\Windows\System32` for the release builds), so they assume Windows is installed there.
 - It only hides ReShade. Other layers the launcher objects to will still trigger the pop-up.

@@ -4,3 +4,5 @@
 *.obj
 *.pdb
 *.log
+build/
+out/
