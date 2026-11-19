@@ -35,6 +35,24 @@ Copy `dwmapi.dll` next to `idTechLauncher.exe` in the game folder. To uninstall,
 
 Vortex doesn't manage this file, so check it's still there after a purge or redeploy.
 
+### If another mod already uses dwmapi.dll
+
+Many mods load the same way, as a proxy for a Windows DLL dropped in the game folder (`version.dll`, `dinput8.dll`, `winmm.dll`, `dxgi.dll` and so on). Only one file can have each name, so check the game folder for an existing `dwmapi.dll` before copying this one in.
+
+Don't rename this DLL to get around a clash. It only loads because `idTechLauncher.exe` imports `dwmapi.dll` by name, and it only forwards dwmapi's functions. Under another name it either never loads (`dinput8.dll` isn't imported by the launcher) or breaks whatever expects the real DLL (`version.dll` would be missing all of version.dll's functions).
+
+If the name is taken, rebuild it as a proxy for a different DLL instead. It has to be one that the launcher imports, that the game exe doesn't import, and that isn't a Windows KnownDLL (those always load from System32). These fit:
+
+- `wtsapi32.dll`
+- `userenv.dll`
+- `dwrite.dll`
+- `authz.dll`
+- `netapi32.dll`
+
+To switch, regenerate `dwmapi_exports.h` from that DLL's exports in System32 (replace `dwmapi` with the new name in each forwarder), change the `/Fe:` output name in `build.cmd`, and rebuild. The hook code doesn't depend on the DLL name.
+
+`version.dll` would also load in the launcher, but the Kaibz mod already uses that name.
+
 ## Log
 
 Each launcher start rewrites `LayerPopupFix.log` in the game folder. A working run looks like this:
