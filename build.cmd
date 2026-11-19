@@ -1,13 +1,15 @@
 @echo off
 rem Builds LayerPopupFix as a proxy for each DLL name given, or for all supported names.
-rem   build.cmd              -> out\dwmapi.dll, out\wtsapi32.dll, ...
+rem   build.cmd              -> out\dwmapi.dll, out\userenv.dll, ...
 rem   build.cmd dwmapi       -> out\dwmapi.dll only (a trailing .dll is fine too)
+rem wtsapi32 is left out on purpose: the launcher's crash-dump code uses it, and as a
+rem proxy it froze the game at startup.
 setlocal
 call "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
 cd /d "%~dp0"
 
 set "NAMES=%*"
-if "%~1"=="" set "NAMES=dwmapi wtsapi32 userenv dwrite authz netapi32"
+if "%~1"=="" set "NAMES=dwmapi userenv dwrite authz netapi32"
 
 if not exist out mkdir out
 for %%N in (%NAMES%) do (

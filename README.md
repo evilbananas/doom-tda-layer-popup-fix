@@ -17,16 +17,19 @@ The Kaibz mod has its own option for this (`IsRemoveIdTechReshadePopUp`), but wi
 
 ## Which DLL to use
 
-The same code is built under six names. Each one is a DLL that the launcher imports, that the game exe doesn't import, and that isn't a Windows KnownDLL (those always load from System32):
+The same code is built under five names. Each one is a DLL that the launcher imports and that isn't a Windows KnownDLL (those always load from System32). The game process also loads some of them at runtime, which is harmless because the proxy only forwards calls outside the launcher.
 
 | File | Notes |
 |---|---|
-| `dwmapi.dll` | Default. Tested in the launcher. |
-| `wtsapi32.dll` | Alternative, not yet tested in the launcher |
-| `userenv.dll` | Alternative, not yet tested in the launcher |
-| `dwrite.dll` | Alternative, not yet tested in the launcher |
-| `authz.dll` | Alternative, not yet tested in the launcher |
-| `netapi32.dll` | Alternative, not yet tested in the launcher |
+| `dwmapi.dll` | Default |
+| `userenv.dll` | Alternative |
+| `dwrite.dll` | Alternative |
+| `authz.dll` | Alternative |
+| `netapi32.dll` | Alternative |
+
+All five were tested in a full launch: no pop-up, ReShade loaded in the game, clean exit.
+
+`wtsapi32.dll` also fits on paper but isn't offered. As a proxy it froze the game at startup. The launcher's crash-dump code calls into wtsapi32, and a dump it started never finished.
 
 Use `dwmapi.dll` unless another mod already puts a `dwmapi.dll` in the game folder. Many mods load as a proxy for a Windows DLL (`version.dll`, `dinput8.dll`, `winmm.dll`, `dxgi.dll` and so on), and only one file can have each name. If `dwmapi.dll` is taken, pick the first name from the table that isn't.
 
@@ -45,7 +48,7 @@ Vortex doesn't manage this file, so check it's still there after a purge or rede
 Needs Visual Studio with the C++ x64 tools. `build.cmd` points at Visual Studio 18 Community; change the `vcvars64.bat` path if yours is elsewhere.
 
 ```
-build.cmd              builds all six into out\
+build.cmd              builds all five into out\
 build.cmd dwmapi       builds out\dwmapi.dll only
 ```
 
